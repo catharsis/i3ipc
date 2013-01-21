@@ -6,6 +6,7 @@ i3completions *i3ipc_get_completions(const char *so) {
 	workspace *root = get_workspaces();
 	i3completions *compl = malloc(sizeof(i3completions));
 	compl->s = strdup(root->name);
+	destroy_workspaces(root);
 	return compl;
 }
 

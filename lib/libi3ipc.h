@@ -5,3 +5,4 @@ typedef struct workspace {
 } workspace;
 
 workspace *get_workspaces(void);
+void destroy_workspaces(workspace *root);
