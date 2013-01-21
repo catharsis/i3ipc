@@ -1,3 +1,6 @@
+
+int i3ipc_sock_connect(const char *sockpath);
+
 typedef char* workspace_name;
 typedef struct workspace {
 	workspace_name name;
