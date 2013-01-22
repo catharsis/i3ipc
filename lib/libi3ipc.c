@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
+
+static int i3ipc_sock;
 /* calls `i3 --get-socketpath` and returns the output
  * it is the responsibility of the caller to free() the
  * returned buffer 
@@ -36,26 +38,26 @@ char *get_sock_path(){
  * automatically
  */
 int i3ipc_sock_connect(const char *sockpath) {
-	int s, len;
-	struct sockaddr_un i3sock;
+	int len = 0;
+	struct sockaddr_un i3sockaddr;
 	char *path = NULL;
 
-	if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+	if ((i3ipc_sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
-	i3sock.sun_family = AF_UNIX;
+	i3sockaddr.sun_family = AF_UNIX;
 	if (!sockpath) {
 		path = get_sock_path();
-		strcpy(i3sock.sun_path, path);
+		strcpy(i3sockaddr.sun_path, path);
 	}
 	else {
-		strcpy(i3sock.sun_path, sockpath);
+		strcpy(i3sockaddr.sun_path, sockpath);
 	}
-	printf("Connecting to i3 socket at %s\n", i3sock.sun_path);
-	len = strlen(i3sock.sun_path) + sizeof(i3sock.sun_family);
+	printf("Connecting to i3 socket at %s\n", i3sockaddr.sun_path);
+	len = strlen(i3sockaddr.sun_path) + sizeof(i3sockaddr.sun_family);
 
-	if(connect(s, (struct sockaddr *)&i3sock, len) == -1) {
+	if(connect(i3ipc_sock, (struct sockaddr *)&i3sockaddr, len) == -1) {
 		perror("connect");
 		exit(1);
 	}
@@ -63,11 +65,16 @@ int i3ipc_sock_connect(const char *sockpath) {
 	printf("Connected.\n");
 	if (path)
 		free(path);
-	close(s);
 	return 0;
 
 }
 
+void i3ipc_sock_disconnect(void) {
+	if ( close(i3ipc_sock) != 0) {
+		perror("close");
+		exit(1);
+	}
+}
 workspace *get_workspaces(void) {
 	workspace *root = malloc(sizeof(workspace*));
 	root->next = NULL;
