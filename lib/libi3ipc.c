@@ -133,6 +133,7 @@ void i3ipc_print_message(i3ipc_msg *msg) {
 workspace *get_workspaces(void) {
 	i3ipc_msg *request = i3ipc_msg_create(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 	i3ipc_print_message(request);
+	i3ipc_msg_destroy(request);
 	workspace *root = malloc(sizeof(workspace));
 	root->next = NULL;
 	root->name = malloc(128);
