@@ -8,7 +8,7 @@
 #include <limits.h>
 #include <stdbool.h>
 
-static int i3ipc_sock;
+static int i3ipc_sock = -1;
 /* calls `i3 --get-socketpath` and returns the output
  * it is the responsibility of the caller to free() the
  * returned buffer 
@@ -130,10 +130,33 @@ void i3ipc_print_message(i3ipc_msg *msg) {
 	printf("I3 IPC Message: %s,%d,%d,%s\n", msg->magic, msg->len, msg->type, msg->payload);
 }
 
+void i3ipc_send_message(uint32_t message_type, uint32_t payload_len) {
+	int buffersz = sizeof(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
+
+	char *buffer = malloc(buffersz);
+	memcpy(buffer, I3_IPC_MAGIC, sizeof(I3_IPC_MAGIC));
+	memcpy(buffer, &payload_len, sizeof(uint32_t));
+	memcpy(buffer, &message_type, sizeof(uint32_t));
+	/*TODO: payload not supported yet*/
+
+	ssize_t sent_bytes = 0, n = 0;
+	while (sent_bytes < buffersz) {
+		n = send(i3ipc_sock, buffer+sent_bytes, (buffersz - sent_bytes), 0);
+		if ( n == 0) {
+			printf("peer (i3) closed connection (%d bytes sent)\n", (int)sent_bytes);
+			exit(1);
+		}
+		else if ( n < 0) {
+			perror("send");
+			exit(1);
+		}
+		else
+			sent_bytes += n;
+	}
+}
+
 workspace *get_workspaces(void) {
-	i3ipc_msg *request = i3ipc_msg_create(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
-	i3ipc_print_message(request);
-	i3ipc_msg_destroy(request);
+	i3ipc_send_message(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, 0);
 	workspace *root = malloc(sizeof(workspace));
 	root->next = NULL;
 	root->name = malloc(128);
