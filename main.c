@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 int main(void) {
-	char *completions = NULL;
-	i3ipc_get_completions(NULL, completions);
-	printf("completions: %s\n", completions);
+	i3completions *completions;
+	completions = i3ipc_get_completions(NULL);
+	printf("completions: %s\n", completions->s);
 	free(completions);
 	return 0;
 }
