@@ -7,3 +7,9 @@ i3completions *i3ipc_get_completions(const char *so) {
 	sprintf(compl->s, "foo");
 	return compl;
 }
+
+int i3ipc_destroy_completions(i3completions *compl) {
+	free(compl->s);
+	free(compl);
+	return 0;
+}
