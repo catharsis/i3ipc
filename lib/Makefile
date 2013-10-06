@@ -1,7 +1,7 @@
 TARGET=libi3ipc.so
 SRCS=libi3ipc.c
 OBJS=${SRCS:.c=.o}
-CCFLAGS=-std=gnu99 -O2 -Wall -Werror -ggdb -fPIC
+CCFLAGS=-std=gnu99 -O0 -Wall -Werror -ggdb -fPIC
 
 .PHONY: all clean
 all:: ${TARGET}

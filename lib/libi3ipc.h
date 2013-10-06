@@ -1,10 +1,13 @@
 #include "i3/ipc.h"
 #include <stdint.h>
-#define MAGIC_LEN (sizeof(I3_IPC_MAGIC)/sizeof(char))
-typedef struct {
-	char magic[MAGIC_LEN];
+typedef struct __attribute__((packed)) {
+	char magic[6];
 	uint32_t len;
 	uint32_t type;
+} i3ipc_header;
+
+typedef struct __attribute__((packed)) {
+	i3ipc_header *header;
 	char *payload;
 } i3ipc_msg;
 
