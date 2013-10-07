@@ -104,12 +104,7 @@ bool i3ipc_valid_type(uint32_t type) {
 i3ipc_msg *i3ipc_msg_create(uint32_t type, const char *payload) {
 	i3ipc_msg *m = calloc(1, sizeof(i3ipc_msg));
 	m->header = calloc(1, sizeof(i3ipc_header));
-	m->header->magic[0] = 'i';
-	m->header->magic[1] = '3';
-	m->header->magic[2] = '-';
-	m->header->magic[3] = 'i';
-	m->header->magic[4] = 'p';
-	m->header->magic[5] = 'c';
+	strncpy(m->header->magic, I3_IPC_MAGIC, strlen(I3_IPC_MAGIC));
 	if (!i3ipc_valid_type(type) ) {
 		return NULL;
 	}
@@ -139,7 +134,7 @@ void i3ipc_print_message(i3ipc_msg *msg) {
 
 void i3ipc_receive_message() {
 	/*get header to figure out length*/
-	size_t headersz = sizeof(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
+	size_t headersz = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
 	void *tmp, *buffer = malloc(headersz);
 	tmp = buffer;
 	ssize_t received_bytes = 0, n = 0;
@@ -157,6 +152,7 @@ void i3ipc_receive_message() {
 			received_bytes += n;
 		}
 	}
+
 	free(tmp);
 }
 void i3ipc_send_message(uint32_t message_type, uint32_t payload_len) {
