@@ -8,6 +8,24 @@
 #include <limits.h>
 #include <stdbool.h>
 
+typedef struct __attribute__((packed)) {
+	char magic[6];
+	uint32_t len;
+	uint32_t type;
+} i3ipc_header;
+
+
+struct __attribute__((packed)) i3ipc_msg{
+	i3ipc_header *header;
+	char *payload;
+};
+
+struct i3Workspace {
+	char *name;
+	i3Workspace *next;
+};
+
+
 static int i3ipc_sock = -1;
 /* calls `i3 --get-socketpath` and returns the output
  * it is the responsibility of the caller to free() the
@@ -132,14 +150,14 @@ void i3ipc_print_message(i3ipc_msg *msg) {
 	printf("I3 IPC Message: %s,%d,%d,%s\n", msg->header->magic, msg->header->len, msg->header->type, msg->payload);
 }
 
-void i3ipc_receive_message() {
-	/*get header to figure out length*/
-	size_t headersz = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
-	void *tmp, *buffer = malloc(headersz);
-	tmp = buffer;
+i3ipc_msg *i3ipc_receive_message() {
+	size_t size = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
+	void *buffer = malloc(size);
 	ssize_t received_bytes = 0, n = 0;
-	while (received_bytes < headersz) {
-		n = recv(i3ipc_sock, buffer + received_bytes, headersz-received_bytes, 0);
+	i3ipc_header header;
+	/*get header to figure out length*/
+	while (received_bytes < size) {
+		n = recv(i3ipc_sock, buffer + received_bytes, size-received_bytes, 0);
 		if ( n == 0) {
 			fprintf(stderr, "peer (i3) closed connection (%d bytes received)\n", (int)received_bytes);
 			exit(1);
@@ -153,7 +171,28 @@ void i3ipc_receive_message() {
 		}
 	}
 
-	free(tmp);
+	memcpy(&header, buffer, received_bytes);
+
+	free(buffer);
+	buffer = NULL;
+	size = header.len;
+	buffer = malloc(size);
+	while (received_bytes < size) {
+		n = recv(i3ipc_sock, buffer + received_bytes, size-received_bytes, 0);
+		if ( n == 0) {
+			fprintf(stderr, "peer (i3) closed connection (%d bytes received)\n", (int)received_bytes);
+			exit(1);
+		}
+		else if ( n < 0  && errno != EAGAIN) {
+			perror("recv");
+			exit(1);
+		}
+		else {
+			received_bytes += n;
+		}
+	}
+	return buffer;
+
 }
 void i3ipc_send_message(uint32_t message_type, uint32_t payload_len) {
 	i3ipc_msg *message = i3ipc_msg_create(message_type, NULL);
@@ -178,17 +217,21 @@ void i3ipc_send_message(uint32_t message_type, uint32_t payload_len) {
 	i3ipc_msg_destroy(message);
 }
 
-workspace *get_workspaces(void) {
+const char *workspace_name(const i3Workspace *w) {
+	return w->name;
+}
+
+i3Workspace *get_workspaces(void) {
 	i3ipc_send_message(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, 0);
-	workspace *root = malloc(sizeof(workspace));
+	i3Workspace *root = malloc(sizeof(i3Workspace));
 	root->next = NULL;
 	root->name = strdup("foo");
 	i3ipc_receive_message();
 	return root;
 }
 
-void destroy_workspaces(workspace *root) {
-	workspace *tmp;
+void destroy_workspaces(i3Workspace *root) {
+	i3Workspace *tmp;
 	while(root != NULL) {
 		tmp = root;
 		root = root->next;
